@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shuttles Timer</title>
+    <!-- Link to external stylesheet for consistent styling across the app -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    
+    <!-- Inline styles for additional specific styling -->
+    <style>
+        /* Center-align text for headings, paragraphs, and divs */
+        h1, h2, p, div {
+            text-align: center;
+        }
+
+        /* Styling for buttons */
+        button {
+            padding: 10px 20px; /* Add padding inside the button */
+            margin: 10px; /* Add margin around the button */
+        }
+
+        /* Remove underline from links and inherit their color from parent */
+        a {
+            text-decoration: none; /* Remove the underline from the link */
+            color: inherit; /* Inherit the color from the parent element */
+        }
+    </style>
+</head>
+<body>
+    <!-- Button for navigating back to the main page -->
+    <button><a href="{{ url_for('index') }}">Back</a></button>
+
+    <!-- Container for the checkbox navigation -->
+    <div class="container4">
+        <nav>
+            <!-- Checkbox for toggling last 5 seconds countdown -->
+            <label>
+                <input id="myCheckBox" type="checkbox"> Count Last 5 Seconds
+            </label>
+        </nav>      
+    </div>
+
+    <!-- Main container for the Shuttles Timer interface -->
+    <div class="container1">
+        <h1>Shuttles Timer</h1>
+        <h2>Good Luck!</h2>
+
+        <!-- Timer section -->
+        <div id="shuttles">
+            <div id="shuttles_buttons">
+                <!-- Buttons for starting, pausing, and resetting the timer -->
+                <button onclick="startTimer()">Start Workout</button>
+                <button onclick="pauseTimer()">Pause Workout</button>
+                <button onclick="resetTimer()">Reset Workout</button>        
+            </div>
+            <!-- Display the current repetition and workout status -->
+            <h2>Current Rep: <span id="currentRep">1</span></h2>
+            <h2><span id="breakVal">Go!</span></h2>
+            <!-- Display the timer -->
+            <h2 class="timer">Timer: <span id="timer">00:00</span></h2>
+        </div>
+    </div>
+
+    <!-- Link to the external JavaScript file for functionality -->
+    <script src="{{ url_for('static', filename='shuttles.js') }}"></script>
+</body>
+</html>

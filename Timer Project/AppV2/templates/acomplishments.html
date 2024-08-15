@@ -1,0 +1,44 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accomplishments</title>
+
+    <!-- Inline styles for the page elements -->
+    <style>
+        /* Center text for all headings and div elements */
+        h1, h2, div {
+            text-align: center;
+        }
+
+        /* Styling for buttons */
+        button {
+            padding: 10px 20px; /* Add padding inside the button */
+            margin: 10px; /* Add margin around the button */
+        }
+
+        /* Remove underline from links and inherit their color from parent */
+        a {
+            text-decoration: none; /* Remove the underline from the link */
+            color: inherit; /* Inherit the color from the parent element */
+        }
+    </style>
+
+    <!-- Link to an external CSS file in the static directory -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+    <!-- Button to navigate back to the index page -->
+    <button><a href="{{ url_for('index') }}">Back</a></button>
+
+    <!-- Main heading of the page -->
+    <h1>Accomplishments</h1>
+
+    <!-- Displaying dynamic data for accomplishments -->
+    <h2>ManU's Started: {{manUStarted}}</h2>
+    <h2>Shuttles Started: {{shuttleStarted}}</h2>
+    <h2>ManU's Completed: {{manUCompleted}}</h2>
+    <h2>Shuttles Completed: {{shuttlesCompleted}}</h2>
+</body>
+</html>

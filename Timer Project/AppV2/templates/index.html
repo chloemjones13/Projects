@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Meta tags for character encoding and responsive design -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Title of the webpage -->
+    <title>Workout Timers</title>
+
+    <!-- Inline CSS for styling elements on the page -->
+    <style>
+        /* Center-align text for headings, paragraphs, and divs */
+        h1, p, div {
+            text-align: center;
+        }
+
+        /* Styling for buttons */
+        button {
+            padding: 10px 20px; /* Add padding inside the button */
+            margin: 10px; /* Add margin around the button */
+        }
+
+        /* Remove underline from links and inherit their color from parent */
+        a {
+            text-decoration: none; /* Remove the underline from the link */
+            color: inherit; /* Inherit the color from the parent element */
+        }
+    </style>
+
+    <!-- Link to external stylesheet stored in the static directory -->
+    <link rel="stylesheet" href="{{url_for('static', filename='styles.css')}}">
+</head>
+<body>
+    <!-- First container for the main title -->
+    <div class="container2">
+        <h1>Soccer Workout Timers</h1>
+    </div>
+
+    <!-- Second container for the timer options -->
+    <div class="container1">
+        <h2>Timer Options</h2>
+
+        <!-- Buttons for navigating to different timers -->
+        <div id="homepage_buttons">
+            <button><a href="{{url_for('manu')}}">ManU</a></button> <!-- Link to the ManU timer -->
+            <button><a href="{{url_for('shuttles')}}">Shuttles</a></button> <!-- Link to the Shuttles timer -->
+        </div>
+    </div>
+
+    <!-- Button to navigate to the accomplishments page -->
+    <button><a href="{{url_for('acomplishments')}}">Accomplishments</a></button>
+
+    <!-- Link to external JavaScript file stored in the static directory -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

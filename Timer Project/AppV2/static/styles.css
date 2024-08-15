@@ -1,0 +1,127 @@
+/* Set the default font family and background color for the entire page */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f0f0; /* Light pink background */
+    color: #f3aacd; /* Soft pink color for the text */
+    margin: 0; /* Remove default margin */
+}
+
+/* Style for the main heading (h1) */
+h1 {
+    color: #e91e63; /* Pink color for the heading text */
+}
+
+/* General container styling for the first section */
+.container1 {
+    background: #fff; /* White background for the content */
+    padding: 20px; /* Padding inside the container */
+    border-radius: 10px; /* Rounded corners */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Soft shadow for a subtle 3D effect */
+    text-align: center; /* Center text alignment */
+    width: 80%; /* Container takes up 80% of the available width */
+    max-width: 500px; /* Maximum width set to 500px */
+    position: absolute; /* Absolute positioning to center the container */
+    top: 50%; /* Position the container vertically in the middle */
+    left: 50%; /* Position the container horizontally in the middle */
+    transform: translate(-50%, -50%); /* Center the container exactly in the middle */
+}
+
+/* Styling for the second container with similar properties */
+.container2 {
+    background: #fff; 
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 80%;
+    max-width: 400px; /* Maximum width set to 400px */
+    position: absolute;
+    top: 25%; /* Positioned closer to the top */
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Styling for the third container, which is smaller */
+.container3 {
+    background: #fff; 
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 80%;
+    max-width: 100px; /* Maximum width set to 100px */
+    position: absolute;
+    top: 10%; /* Positioned at the top of the page */
+    left: 10%; /* Positioned towards the left of the page */
+    transform: translate(-50%, -50%);
+}
+
+/* Styling for the fourth container with a slightly larger width */
+.container4 {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 80%;
+    max-width: 200px; /* Maximum width set to 200px */
+    position: absolute;
+    top: 10%; /* Positioned at the top */
+    left: 50%; /* Centered horizontally */
+    transform: translate(-50%, -50%);
+}
+
+/* Style for subheadings (h2) */
+h2 {
+    color: #f06292; /* Light pink color for subheadings */
+    text-align: center; /* Center the text */
+}
+
+/* Button styling */
+button {
+    padding: 10px 20px; /* Padding inside the button */
+    margin-top: 10px; /* Margin on top of the button */
+    background-color: #f280a6; /* Pink button background */
+    color: #fff; /* White text on buttons */
+    border: none; /* No border */
+    border-radius: 5px; /* Slightly rounded corners */
+    cursor: pointer; /* Pointer cursor on hover */
+    font-size: 1em; /* Set font size */
+}
+
+/* Change button color on hover */
+button:hover {
+    background-color: #d81b60; /* Darker pink on hover */
+}
+
+/* Style for the timer text */
+.timer {
+    font-size: 2em; /* Large font size */
+    color: #e91e63; /* Pink color for the timer text */
+}
+
+/* Dropdown menu styling */
+#dropdown-products {
+    display: none; /* Hide dropdown by default */
+}
+
+/* Show dropdown when hovering over the menu */
+#menu-products:hover #dropdown-products {
+    display: block; /* Show dropdown on hover */
+}
+
+/* Styling for unordered lists (ul) */
+ul {
+    list-style-type: none; /* Remove default list bullets */
+    display: table; /* Center the list items */
+    margin: 0 auto; /* Center the list */
+    text-align: middle; /* Center-align text */
+}
+
+/* Styling for canvas elements */
+canvas {
+    overflow-y: hidden; /* Hide vertical overflow */
+    overflow-x: hidden; /* Hide horizontal overflow */
+    width: 100%; /* Make the canvas take up full width */
+    margin: 0; /* Remove default margin */
+}
