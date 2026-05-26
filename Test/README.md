@@ -1,6 +1,7 @@
 # PDF Document Intelligence Pipeline
 
-A local, end-to-end pipeline that turns a PDF into a queryable knowledge base using the Claude API, sentence-transformers, and ChromaDB — all running on your machine.
+A local, end-to-end pipeline that turns a PDF into a queryable knowledge base.
+Works with **any LLM provider** — Anthropic, OpenAI, Google, Mistral, Cohere, Ollama, and more — via [LiteLLM](https://docs.litellm.ai).
 
 ## What it does
 
@@ -8,9 +9,22 @@ A local, end-to-end pipeline that turns a PDF into a queryable knowledge base us
 |---|---|
 | **Parse** | Extracts text with `pdfplumber`, handles multi-column layouts, skips scanned/empty pages |
 | **Chunk** | Splits text into sentence-aware chunks (configurable size + overlap) |
-| **Extract** | Calls Claude (`claude-sonnet-4-20250514`) to produce structured JSON per chunk |
+| **Extract** | Calls any LLM via LiteLLM to produce structured JSON per chunk |
 | **Embed + Store** | Embeds chunks with `all-MiniLM-L6-v2` and stores them in a local ChromaDB collection |
 | **Query** | Takes a natural-language question, embeds it, and returns the top-k most relevant chunks |
+
+## Supported providers
+
+| Provider | Example model string | Required env var |
+|---|---|---|
+| Anthropic (default) | `claude-sonnet-4-20250514` | `ANTHROPIC_API_KEY` |
+| OpenAI | `gpt-4o` | `OPENAI_API_KEY` |
+| Google Gemini | `gemini/gemini-1.5-pro` | `GEMINI_API_KEY` |
+| Mistral | `mistral/mistral-large-latest` | `MISTRAL_API_KEY` |
+| Cohere | `cohere/command-r-plus` | `COHERE_API_KEY` |
+| Ollama (local) | `ollama/llama3` | *(none)* |
+
+Any model supported by LiteLLM works — see the [full list](https://docs.litellm.ai/docs/providers).
 
 ## Structured schema
 
@@ -31,19 +45,27 @@ class ChunkStructure(BaseModel):
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Copy and fill in your API key
+# 2. Copy and fill in the API key for your chosen provider
 cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY=sk-ant-...
+# edit .env — only set the key for the provider you'll use
 ```
 
 ## Usage
 
 ```bash
-# Basic — uses a default test query
+# Default provider (Anthropic claude-sonnet-4-20250514)
 python pdf_pipeline.py path/to/document.pdf
 
-# With a custom query
+# Custom query
 python pdf_pipeline.py path/to/document.pdf "Who are the key people mentioned?"
+
+# Switch to a different provider with --model
+python pdf_pipeline.py doc.pdf "Summarize" --model gpt-4o
+python pdf_pipeline.py doc.pdf "Key findings" --model gemini/gemini-1.5-pro
+python pdf_pipeline.py doc.pdf "Main topics" --model ollama/llama3
+
+# Pin a default model via env var so you don't need --model every time
+LLM_MODEL=gpt-4o python pdf_pipeline.py doc.pdf
 ```
 
 ### Example output
@@ -51,6 +73,7 @@ python pdf_pipeline.py path/to/document.pdf "Who are the key people mentioned?"
 ```
 =======================================================
    PDF DOCUMENT INTELLIGENCE PIPELINE
+   Model: gpt-4o
 =======================================================
 
 [1/5] PARSING PDF
@@ -61,7 +84,7 @@ python pdf_pipeline.py path/to/document.pdf "Who are the key people mentioned?"
 [2/5] CHUNKING TEXT  (chunk_size=500 tokens, overlap=50 tokens)
   → 21 chunks created
 
-[3/5] EXTRACTING STRUCTURE via Claude API
+[3/5] EXTRACTING STRUCTURE  [gpt-4o]
   → Structure extracted for 21 chunks
 
 [4/5] EMBEDDING + STORING IN CHROMADB
@@ -81,15 +104,13 @@ python pdf_pipeline.py path/to/document.pdf "Who are the key people mentioned?"
 
 ## Configuration
 
-All tunable parameters are arguments to the core functions:
-
-| Parameter | Default | Where |
+| Parameter | Default | How to set |
 |---|---|---|
-| `chunk_size` | `500` tokens | `chunk_text()` |
-| `overlap` | `50` tokens | `chunk_text()` |
-| `top_k` | `5` | `query_collection()` |
-| Claude model | `claude-sonnet-4-20250514` | `extract_structure()` |
-| Embedding model | `all-MiniLM-L6-v2` | `main()` |
+| LLM model | `claude-sonnet-4-20250514` | `--model <string>` or `LLM_MODEL` env var |
+| `chunk_size` | `500` tokens | edit `main()` call to `chunk_text()` |
+| `overlap` | `50` tokens | edit `main()` call to `chunk_text()` |
+| `top_k` | `3` (main), `5` (function default) | edit `main()` call to `query_collection()` |
+| Embedding model | `all-MiniLM-L6-v2` | edit `main()` |
 
 ## File structure
 
@@ -97,7 +118,7 @@ All tunable parameters are arguments to the core functions:
 Test/
 ├── pdf_pipeline.py   # Full pipeline implementation
 ├── requirements.txt  # Python dependencies
-├── .env.example      # Template for API key
+├── .env.example      # Template for API keys
 └── README.md         # This file
 ```
 
@@ -105,4 +126,4 @@ Test/
 
 - **Scanned pages**: detected by low character count, logged and skipped.
 - **LLM JSON errors**: `extract_structure_safe()` catches `JSONDecodeError` and `ValidationError`, logs a warning, and substitutes a blank `ChunkStructure` so the rest of the pipeline continues.
-- **Missing API key**: raises a clear `EnvironmentError` before any API call is made.
+- **Wrong/missing API key**: LiteLLM raises a descriptive `AuthenticationError`; the pipeline prints the error and moves on to the next chunk.

@@ -1,9 +1,17 @@
 """
 PDF Document Intelligence Pipeline
 
-Parses a PDF → chunks text → extracts structure via Claude API →
+Parses a PDF → chunks text → extracts structure via any LLM (LiteLLM) →
 embeds with sentence-transformers → stores in ChromaDB → supports
 natural-language querying.
+
+LiteLLM model strings (pass via --model or LLM_MODEL env var):
+  Anthropic  : claude-sonnet-4-20250514
+  OpenAI     : gpt-4o
+  Google     : gemini/gemini-1.5-pro
+  Mistral    : mistral/mistral-large-latest
+  Cohere     : cohere/command-r-plus
+  Ollama     : ollama/llama3   (local, no API key needed)
 """
 
 import json
@@ -14,13 +22,16 @@ import uuid
 from typing import Optional
 
 import chromadb
+import litellm
 import pdfplumber
-from anthropic import Anthropic
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 from sentence_transformers import SentenceTransformer
 
 load_dotenv()
+
+# Silence litellm's verbose success logging
+litellm.success_callback = []
 
 
 # ---------------------------------------------------------------------------
@@ -46,8 +57,8 @@ class ChunkStructure(BaseModel):
 
 def _reconstruct_columns(page) -> str:
     """
-    Detect and handle two-column layouts by sorting words into left/right
-    columns and reassembling them independently before joining.
+    Detect two-column layouts by measuring word density in the middle third
+    of the page; reassemble columns independently when detected.
     """
     words = page.extract_words(x_tolerance=3, y_tolerance=3)
     if not words:
@@ -57,17 +68,14 @@ def _reconstruct_columns(page) -> str:
     x_min, x_max = min(xs), max(xs)
     page_width = x_max - x_min
 
-    # Only attempt column split if there is a meaningful gap in the middle third
     mid_low = x_min + page_width * 0.35
     mid_high = x_min + page_width * 0.65
     mid_words = [w for w in words if mid_low <= w["x0"] <= mid_high]
     mid_density = len(mid_words) / max(len(words), 1)
 
     if mid_density > 0.15:
-        # Dense middle → single-column, return default extraction
         return page.extract_text(x_tolerance=3, y_tolerance=3) or ""
 
-    # Two-column layout
     midpoint = (x_min + x_max) / 2
     left = [w for w in words if w["x0"] < midpoint]
     right = [w for w in words if w["x0"] >= midpoint]
@@ -75,7 +83,7 @@ def _reconstruct_columns(page) -> str:
     def words_to_text(word_list):
         lines: dict[int, list] = {}
         for w in word_list:
-            top = round(w["top"] / 5) * 5  # bucket by 5-pt rows
+            top = round(w["top"] / 5) * 5
             lines.setdefault(top, []).append(w)
         result = []
         for top in sorted(lines):
@@ -100,7 +108,6 @@ def parse_pdf(file_path: str) -> list[dict]:
                 print(f"  [WARN] Page {i + 1}/{total} appears scanned or empty — skipping")
                 continue
 
-            # Try column-aware extraction; fall back to raw if it's shorter
             col_text = _reconstruct_columns(page)
             text = col_text if len(col_text) > len(raw) else raw
 
@@ -115,7 +122,6 @@ def parse_pdf(file_path: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def _token_estimate(text: str) -> int:
-    """Rough 4-chars-per-token estimate."""
     return max(1, len(text) // 4)
 
 
@@ -125,13 +131,10 @@ def chunk_text(
     overlap: int = 50,
 ) -> list[dict]:
     """
-    Sentence-aware chunking.  Sentences are never split mid-way; overlap
-    is achieved by carrying the tail sentences of the previous chunk into
-    the next one.
+    Sentence-aware chunking. Sentences are never split mid-way; overlap is
+    achieved by carrying tail sentences of the previous chunk into the next.
     """
     full_text = " ".join(p["text"] for p in pages)
-
-    # Split on sentence-ending punctuation followed by whitespace
     raw_sentences = re.split(r"(?<=[.!?])\s+", full_text.strip())
     sentences = [s.strip() for s in raw_sentences if s.strip()]
 
@@ -145,7 +148,6 @@ def chunk_text(
         if current_tokens + s_tokens > chunk_size and current:
             chunks.append({"text": " ".join(current), "chunk_index": len(chunks)})
 
-            # Build overlap tail from the end of the current chunk
             tail: list[str] = []
             tail_tokens = 0
             for s in reversed(current):
@@ -168,7 +170,7 @@ def chunk_text(
 
 
 # ---------------------------------------------------------------------------
-# 3. EXTRACT STRUCTURE
+# 3. EXTRACT STRUCTURE  (provider-agnostic via LiteLLM)
 # ---------------------------------------------------------------------------
 
 _EXTRACTION_PROMPT = """\
@@ -194,10 +196,10 @@ def _strip_fences(text: str) -> str:
     return text.strip()
 
 
-def extract_structure(chunk: dict, client: Anthropic) -> ChunkStructure:
-    """Call Claude to extract structured metadata from one chunk."""
-    response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+def extract_structure(chunk: dict, model: str) -> ChunkStructure:
+    """Call any LiteLLM-supported model to extract structured metadata."""
+    response = litellm.completion(
+        model=model,
         max_tokens=1024,
         messages=[
             {
@@ -206,21 +208,21 @@ def extract_structure(chunk: dict, client: Anthropic) -> ChunkStructure:
             }
         ],
     )
-    raw = _strip_fences(response.content[0].text)
+    raw = _strip_fences(response.choices[0].message.content)
     data = json.loads(raw)
     return ChunkStructure(**data)
 
 
-def extract_structure_safe(chunk: dict, client: Anthropic) -> ChunkStructure:
-    """Wrapper that returns a default ChunkStructure on any extraction failure."""
+def extract_structure_safe(chunk: dict, model: str) -> ChunkStructure:
+    """Returns a blank ChunkStructure instead of raising on any failure."""
     try:
-        return extract_structure(chunk, client)
+        return extract_structure(chunk, model)
     except json.JSONDecodeError as exc:
         print(f"\n  [WARN] Chunk {chunk['chunk_index']}: JSON decode error — {exc}")
     except ValidationError as exc:
         print(f"\n  [WARN] Chunk {chunk['chunk_index']}: schema validation error — {exc}")
     except Exception as exc:
-        print(f"\n  [WARN] Chunk {chunk['chunk_index']}: unexpected error — {exc}")
+        print(f"\n  [WARN] Chunk {chunk['chunk_index']}: {type(exc).__name__} — {exc}")
     return ChunkStructure(summary="Extraction failed.")
 
 
@@ -287,13 +289,17 @@ def query_collection(
 # 6. MAIN — wire it all together
 # ---------------------------------------------------------------------------
 
-def main(pdf_path: str, test_query: str = "What are the main topics in this document?"):
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise EnvironmentError("ANTHROPIC_API_KEY is not set. Add it to a .env file.")
+DEFAULT_MODEL = "claude-sonnet-4-20250514"
 
+
+def main(
+    pdf_path: str,
+    test_query: str = "What are the main topics in this document?",
+    model: str = DEFAULT_MODEL,
+):
     print("\n" + "=" * 55)
     print("   PDF DOCUMENT INTELLIGENCE PIPELINE")
+    print(f"   Model: {model}")
     print("=" * 55)
 
     # --- Stage 1: Parse ---
@@ -310,12 +316,11 @@ def main(pdf_path: str, test_query: str = "What are the main topics in this docu
     print(f"  → {len(chunks)} chunks created")
 
     # --- Stage 3: Extract structure ---
-    print("\n[3/5] EXTRACTING STRUCTURE via Claude API")
-    client = Anthropic(api_key=api_key)
+    print(f"\n[3/5] EXTRACTING STRUCTURE  [{model}]")
     structures: list[ChunkStructure] = []
     for i, chunk in enumerate(chunks):
         print(f"  Processing chunk {i + 1}/{len(chunks)}…", end="\r", flush=True)
-        structures.append(extract_structure_safe(chunk, client))
+        structures.append(extract_structure_safe(chunk, model))
     print(f"\n  → Structure extracted for {len(structures)} chunks")
 
     # --- Stage 4: Embed + store ---
@@ -350,9 +355,29 @@ def main(pdf_path: str, test_query: str = "What are the main topics in this docu
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python pdf_pipeline.py <pdf_path> [\"query string\"]")
+        print("Usage: python pdf_pipeline.py <pdf_path> [\"query\"] [--model <model>]")
+        print()
+        print("Examples:")
+        print("  python pdf_pipeline.py doc.pdf")
+        print("  python pdf_pipeline.py doc.pdf \"Who wrote this?\" --model gpt-4o")
+        print("  python pdf_pipeline.py doc.pdf \"Summarize\" --model gemini/gemini-1.5-pro")
+        print("  python pdf_pipeline.py doc.pdf \"Key findings\" --model ollama/llama3")
         sys.exit(1)
 
     pdf = sys.argv[1]
-    q = sys.argv[2] if len(sys.argv) > 2 else "What are the main topics in this document?"
-    main(pdf, q)
+
+    # Parse optional positional query and --model flag
+    query_arg = "What are the main topics in this document?"
+    model_arg = os.getenv("LLM_MODEL", DEFAULT_MODEL)
+
+    remaining = sys.argv[2:]
+    i = 0
+    while i < len(remaining):
+        if remaining[i] == "--model" and i + 1 < len(remaining):
+            model_arg = remaining[i + 1]
+            i += 2
+        else:
+            query_arg = remaining[i]
+            i += 1
+
+    main(pdf, query_arg, model_arg)
