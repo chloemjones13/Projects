@@ -1,41 +1,5 @@
 # Projects
 
-A collection of Python and web projects.
-
----
-
-## PDF Document Intelligence Pipeline
-
-A local, end-to-end pipeline that turns any PDF into a queryable knowledge base.
-Parses → chunks → extracts structured metadata via Claude API → embeds with
-sentence-transformers → stores in ChromaDB → supports natural-language queries.
-
-**Location:** `Test/`  |  **Details:** [Test/README.md](Test/README.md)
-
-**Technologies:** Python, Anthropic Claude API, pdfplumber, sentence-transformers, ChromaDB, Pydantic
-
----
-
-## Workout Timer Website
-
-A web-based workout timer application designed to help users manage their exercise routines effectively. The application allows users to set, start, pause, and reset timers for different exercises, providing a streamlined and interactive experience.
-
-## Features
-
-- **Dynamic Timers**: Create and manage multiple timers for various exercises.
-- **Session Management**: Track and display workout statistics using Flask sessions.
-- **Responsive Design**: The interface adapts to different screen sizes, offering a user-friendly experience on both desktop and mobile devices.
-- **Real-Time Updates**: Instant feedback and interaction with the timer functions.
-
-## Technologies Used
-
-- **Backend**: Flask (Python)
-- **Frontend**: HTML, CSS, JavaScript
-- **Session Management**: Flask sessions
-- **UI/UX**: Responsive design using CSS
-
----
-
 ## Bird Classification Using CNNs
 
 A deep learning project focused on classifying images of 525 bird species using a Convolutional Neural Network (CNN). The project leverages the "525-bird-species" dataset from Kaggle and aims to achieve high accuracy in bird species identification.
